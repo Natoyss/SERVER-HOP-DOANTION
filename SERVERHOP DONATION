@@ -37,16 +37,26 @@ local function ServerHop()
     end
 end
 
--- UI for Server Hop Button and Time Input
+-- UI for Server Hop Button and Time Input (Hidden Behind Logo)
 local ScreenGui = Instance.new("ScreenGui")
 local Button = Instance.new("TextButton")
 local TimeInput = Instance.new("TextBox")
+local Logo = Instance.new("ImageButton")
 local Label = Instance.new("TextLabel")
+local SaveButton = Instance.new("TextButton")
 
 ScreenGui.Parent = game:GetService("CoreGui")
 Button.Parent = ScreenGui
 TimeInput.Parent = ScreenGui
+Logo.Parent = ScreenGui
 Label.Parent = ScreenGui
+SaveButton.Parent = ScreenGui
+
+-- Setup UI elements
+Logo.Size = UDim2.new(0, 50, 0, 50)
+Logo.Position = UDim2.new(0.5, -25, 0.5, -25)
+Logo.Image = "rbxassetid://12345678"  -- Change this to your logo image ID
+Logo.BackgroundTransparency = 1
 
 Button.Size = UDim2.new(0, 200, 0, 50)
 Button.Position = UDim2.new(0.5, -100, 0.5, -25)
@@ -55,6 +65,7 @@ Button.Text = "Set Time & Server Hop"
 Button.TextSize = 20
 Button.TextColor3 = Color3.fromRGB(255, 255, 255)
 Button.Font = Enum.Font.SourceSansBold
+Button.Visible = false  -- Hidden behind the logo
 
 TimeInput.Size = UDim2.new(0, 200, 0, 50)
 TimeInput.Position = UDim2.new(0.5, -100, 0.6, 0)
@@ -62,6 +73,7 @@ TimeInput.PlaceholderText = "Enter time in minutes"
 TimeInput.TextSize = 18
 TimeInput.TextColor3 = Color3.fromRGB(255, 255, 255)
 TimeInput.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+TimeInput.Visible = false  -- Hidden behind the logo
 
 Label.Size = UDim2.new(0, 200, 0, 30)
 Label.Position = UDim2.new(0.5, -100, 0.45, 0)
@@ -69,13 +81,77 @@ Label.Text = "Enter delay (minutes)"
 Label.TextSize = 18
 Label.TextColor3 = Color3.fromRGB(255, 255, 255)
 Label.BackgroundTransparency = 1
+Label.Visible = false  -- Hidden behind the logo
 
-Button.MouseButton1Click:Connect(function()
+SaveButton.Size = UDim2.new(0, 200, 0, 50)
+SaveButton.Position = UDim2.new(0.5, -100, 0.7, 0)
+SaveButton.BackgroundColor3 = Color3.fromRGB(0, 0, 255)
+SaveButton.Text = "Save Settings"
+SaveButton.TextSize = 20
+SaveButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+SaveButton.Font = Enum.Font.SourceSansBold
+SaveButton.Visible = false  -- Hidden behind the logo
+
+-- Allow dragging of UI
+local dragInput, dragStart, startPos
+local function update(input)
+	local delta = input.Position - dragStart
+	local newPos = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+	ScreenGui.Position = newPos
+end
+
+Logo.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		dragStart = input.Position
+		startPos = ScreenGui.Position
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then
+				dragInput:Disconnect()
+			end
+		end)
+		dragInput = input.InputChanged:Connect(update)
+	end
+end)
+
+-- Show UI when logo is clicked
+Logo.MouseButton1Click:Connect(function()
+	Button.Visible = true
+	TimeInput.Visible = true
+	Label.Visible = true
+	SaveButton.Visible = true
+end)
+
+-- Save delay time and auto-execute server hop
+SaveButton.MouseButton1Click:Connect(function()
     local timeInMinutes = tonumber(TimeInput.Text)
     if timeInMinutes and timeInMinutes > 0 then
-        wait(timeInMinutes * 60)  -- Wait for the specified time (in seconds)
-        ServerHop()
+        -- Save time in data store or in a variable
+        local success, err = pcall(function()
+            -- Save delay in the executor (change this to suit your saving method)
+            writefile("serverhop_settings.txt", timeInMinutes)
+        end)
+        
+        if success then
+            print("Settings saved!")
+        else
+            warn("Error saving settings: " .. err)
+        end
+
+        -- Auto execute server hop
+        while true do
+            wait(timeInMinutes * 60)  -- Wait for the specified time (in seconds)
+            ServerHop()
+        end
     else
         warn("Please enter a valid number of minutes.")
     end
 end)
+
+-- Auto execute on executor start
+local savedTime = tonumber(readfile("serverhop_settings.txt"))
+if savedTime then
+    while true do
+        wait(savedTime * 60)  -- Wait for the specified time (in seconds)
+        ServerHop()
+    end
+end
