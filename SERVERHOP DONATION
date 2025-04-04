@@ -1,3 +1,9 @@
+--[[
+    This property is protected.
+    You are not allowed to claim this as your own.
+    Removal of initial credits to the authors is prohibited.
+]]
+
 repeat
     task.wait()
 until game:IsLoaded()
@@ -7,40 +13,52 @@ if game.PlaceId ~= 8737602449 and game.PlaceId ~= 8943844393 then
     return
 end
 
-local CoreGui = game:GetService("CoreGui")
-local Players = game:GetService("Players")
-local HttpService = game:GetService("HttpService")
-local TPService = game:GetService("TeleportService")
+local identifyexecutor = identifyexecutor or function() return 'Unknown' end
+local cloneref = (identifyexecutor() ~= "Synapse Z" and not identifyexecutor():find("Codex") and cloneref) or function(o) return o end
+local CoreGui = cloneref(game:GetService("CoreGui"))
+local Players = cloneref(game:GetService("Players"))
+local HttpService = cloneref(game:GetService("HttpService"))
+local TPService = cloneref(game:GetService("TeleportService"))
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Workspace = game:GetService("Workspace")
+local ScreenGui = Instance.new("ScreenGui")
+local Frame = Instance.new("Frame")
+local Button = Instance.new("TextButton")
 
--- Create a function to hop servers
+ScreenGui.Parent = CoreGui
+ScreenGui.Name = "ServerHopUI"
+ScreenGui.ResetOnSpawn = false
+
+Frame.Parent = ScreenGui
+Frame.Size = UDim2.new(0, 200, 0, 150)
+Frame.Position = UDim2.new(0.5, -100, 0.5, -75)
+Frame.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+
+Button.Parent = Frame
+Button.Size = UDim2.new(0, 180, 0, 50)
+Button.Position = UDim2.new(0, 10, 0, 10)
+Button.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+Button.Text = "Hop Server"
+
 local function hopToServer()
+    -- Add logic for server hopping here
     local success, message = pcall(function()
-        -- Get a list of servers
-        local servers = ReplicatedStorage:WaitForChild("ServerInstances"):GetChildren()
-        
-        -- If there are servers, teleport to a different one
-        if #servers > 0 then
-            local randomServer = servers[math.random(1, #servers)]
-            TPService:TeleportToPlaceInstance(game.PlaceId, randomServer.PlaceId)
-        else
-            warn("No servers found.")
-        end
+        TPService:Teleport(game.PlaceId, Players.LocalPlayer)
     end)
     
     if not success then
-        warn("Error during server hop: " .. tostring(message))
+        warn("Error during server hop: " .. message)
+        Button.Text = "Failed to Hop"
+        Button.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+        task.wait(2)
+        Button.Text = "Hop Server"
+        Button.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+    else
+        Button.Text = "Hopping..."
+        Button.BackgroundColor3 = Color3.fromRGB(255, 255, 0)
+        task.wait(1)
+        Button.Text = "Hop Server"
+        Button.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
     end
 end
 
--- Check for server hop button or activation
-local button = Instance.new("TextButton")
-button.Size = UDim2.new(0, 200, 0, 50)
-button.Position = UDim2.new(0.5, -100, 0.5, -25)
-button.Text = "Hop to Server"
-button.TextColor3 = Color3.fromRGB(255, 255, 255)
-button.BackgroundColor3 = Color3.fromRGB(0, 122, 255)
-button.Parent = CoreGui
-
-button.MouseButton1Click:Connect(hopToServer)
+Button.MouseButton1Click:Connect(hopToServer)
