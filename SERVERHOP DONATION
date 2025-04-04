@@ -31,9 +31,23 @@ end
 local function ServerHop()
     local server = GetServer()
     if server then
-        TPService:TeleportToPlaceInstance(game.PlaceId, server, LocalPlayer)
+        local success, err = pcall(function()
+            TPService:TeleportToPlaceInstance(game.PlaceId, server, LocalPlayer)
+        end)
+        if success then
+            print("Teleporting to server:", server)
+        else
+            warn("Error teleporting: " .. err)
+        end
     else
         warn("No available servers found!")
+    end
+end
+
+local function WaitForNewServer()
+    -- Wait until the new server is fully loaded
+    while not game:IsLoaded() do
+        task.wait()
     end
 end
 
@@ -95,30 +109,30 @@ SaveButton.Visible = false  -- Hidden behind the logo
 -- Allow dragging of UI
 local dragInput, dragStart, startPos
 local function update(input)
-	local delta = input.Position - dragStart
-	local newPos = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-	ScreenGui.Position = newPos
+    local delta = input.Position - dragStart
+    local newPos = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    ScreenGui.Position = newPos
 end
 
 Logo.InputBegan:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 then
-		dragStart = input.Position
-		startPos = ScreenGui.Position
-		input.Changed:Connect(function()
-			if input.UserInputState == Enum.UserInputState.End then
-				dragInput:Disconnect()
-			end
-		end)
-		dragInput = input.InputChanged:Connect(update)
-	end
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragStart = input.Position
+        startPos = ScreenGui.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragInput:Disconnect()
+            end
+        end)
+        dragInput = input.InputChanged:Connect(update)
+    end
 end)
 
 -- Show UI when logo is clicked
 Logo.MouseButton1Click:Connect(function()
-	Button.Visible = true
-	TimeInput.Visible = true
-	Label.Visible = true
-	SaveButton.Visible = true
+    Button.Visible = true
+    TimeInput.Visible = true
+    Label.Visible = true
+    SaveButton.Visible = true
 end)
 
 -- Save delay time and auto-execute server hop
@@ -141,6 +155,8 @@ SaveButton.MouseButton1Click:Connect(function()
         while true do
             wait(timeInMinutes * 60)  -- Wait for the specified time (in seconds)
             ServerHop()
+            -- Wait for the server to load before continuing
+            WaitForNewServer()
         end
     else
         warn("Please enter a valid number of minutes.")
@@ -153,5 +169,7 @@ if savedTime then
     while true do
         wait(savedTime * 60)  -- Wait for the specified time (in seconds)
         ServerHop()
+        -- Wait for the server to load before continuing
+        WaitForNewServer()
     end
 end
