@@ -1,64 +1,86 @@
---[[
-    This property is protected.
-    You are not allowed to claim this as your own.
-    Removal of initial credits to the authors is prohibited.
-]]
+local Player = game.Players.LocalPlayer    
+local Http = game:GetService("HttpService")
+local TPS = game:GetService("TeleportService")
+local Api = "https://games.roblox.com/v1/games/"
 
-repeat
-    task.wait()
-until game:IsLoaded()
+local _place,_id = game.PlaceId, game.JobId
+-- Asc for lowest player count, Desc for highest player count
+local _servers = Api.._place.."/servers/Public?sortOrder=Asc&limit=10"
 
--- Stops script if on a different game
-if game.PlaceId ~= 8737602449 and game.PlaceId ~= 8943844393 then
-    return
+function ListServers(cursor)
+   local Raw = game:HttpGet(_servers .. ((cursor and "&cursor="..cursor) or ""))
+   return Http:JSONDecode(Raw)
 end
 
-local identifyexecutor = identifyexecutor or function() return 'Unknown' end
-local cloneref = (identifyexecutor() ~= "Synapse Z" and not identifyexecutor():find("Codex") and cloneref) or function(o) return o end
-local CoreGui = cloneref(game:GetService("CoreGui"))
-local Players = cloneref(game:GetService("Players"))
-local HttpService = cloneref(game:GetService("HttpService"))
-local TPService = cloneref(game:GetService("TeleportService"))
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local time_to_wait = 40 -- Default time in seconds
+
+-- Create UI elements
 local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "NatoyUI"
+ScreenGui.Parent = Player:WaitForChild("PlayerGui")
+
 local Frame = Instance.new("Frame")
-local Button = Instance.new("TextButton")
-
-ScreenGui.Parent = CoreGui
-ScreenGui.Name = "ServerHopUI"
-ScreenGui.ResetOnSpawn = false
-
 Frame.Parent = ScreenGui
-Frame.Size = UDim2.new(0, 200, 0, 150)
-Frame.Position = UDim2.new(0.5, -100, 0.5, -75)
-Frame.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+Frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+Frame.Size = UDim2.new(0, 300, 0, 200)
+Frame.Position = UDim2.new(0.5, -150, 0.5, -100)
 
-Button.Parent = Frame
-Button.Size = UDim2.new(0, 180, 0, 50)
-Button.Position = UDim2.new(0, 10, 0, 10)
-Button.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
-Button.Text = "Hop Server"
+local Title = Instance.new("TextLabel")
+Title.Parent = Frame
+Title.Text = "Natoy Server Hopper"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.Size = UDim2.new(1, 0, 0, 50)
+Title.TextSize = 20
+Title.TextAlign = Enum.TextXAlignment.Center
 
-local function hopToServer()
-    -- Add logic for server hopping here
-    local success, message = pcall(function()
-        TPService:Teleport(game.PlaceId, Players.LocalPlayer)
-    end)
+local TimerLabel = Instance.new("TextLabel")
+TimerLabel.Parent = Frame
+TimerLabel.Text = "Time to wait: " .. time_to_wait .. "s"
+TimerLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+TimerLabel.Size = UDim2.new(1, 0, 0, 30)
+TimerLabel.Position = UDim2.new(0, 0, 0.3, 0)
+TimerLabel.TextSize = 18
+TimerLabel.TextAlign = Enum.TextXAlignment.Center
+
+local TimeInput = Instance.new("TextBox")
+TimeInput.Parent = Frame
+TimeInput.Size = UDim2.new(0, 100, 0, 30)
+TimeInput.Position = UDim2.new(0.5, -50, 0.5, 0)
+TimeInput.PlaceholderText = "Enter time"
+TimeInput.Text = tostring(time_to_wait)
+TimeInput.TextSize = 18
+TimeInput.TextColor3 = Color3.fromRGB(0, 0, 0)
+TimeInput.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+
+local StartButton = Instance.new("TextButton")
+StartButton.Parent = Frame
+StartButton.Text = "Start Hopping"
+StartButton.TextSize = 18
+StartButton.Size = UDim2.new(0, 200, 0, 50)
+StartButton.Position = UDim2.new(0.5, -100, 0.8, 0)
+StartButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+StartButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+
+StartButton.MouseButton1Click:Connect(function()
+    -- Update time_to_wait with the value from the input box
+    time_to_wait = tonumber(TimeInput.Text) or 40
+    TimerLabel.Text = "Time to wait: " .. time_to_wait .. "s"
     
-    if not success then
-        warn("Error during server hop: " .. message)
-        Button.Text = "Failed to Hop"
-        Button.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-        task.wait(2)
-        Button.Text = "Hop Server"
-        Button.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
-    else
-        Button.Text = "Hopping..."
-        Button.BackgroundColor3 = Color3.fromRGB(255, 255, 0)
-        task.wait(1)
-        Button.Text = "Hop Server"
-        Button.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+    -- Start the server hopping process
+    while true do
+        -- freeze player before teleporting to prevent synapse crash
+        Player.Character.HumanoidRootPart.Anchored = true
+        local Servers = ListServers()
+        local Server = Servers.data[math.random(1, #Servers.data)]
+        TPS:TeleportToPlaceInstance(_place, Server.id, Player)
+        wait(time_to_wait)
     end
-end
+end)
 
-Button.MouseButton1Click:Connect(hopToServer)
+-- Update the timer in real-time
+spawn(function()
+    while true do
+        TimerLabel.Text = "Time to wait: " .. time_to_wait .. "s"
+        wait(1)
+    end
+end)
