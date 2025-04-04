@@ -63,22 +63,24 @@ hopButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 hopButton.BackgroundColor3 = Color3.fromRGB(0, 122, 255)
 hopButton.Parent = frame
 
--- Function to hop to a server
+-- Function to hop to a server (using teleport)
 local function hopToServer()
-    local success, servers = pcall(function()
-        return game:GetService("ReplicatedStorage"):WaitForChild("PlaceId"):GetChildren()
+    local success, message = pcall(function()
+        -- Randomly select a place instance (if available)
+        local teleportService = game:GetService("TeleportService")
+        local places = game:GetService("ReplicatedStorage"):WaitForChild("PlaceId"):GetChildren()
+
+        -- Teleport to a new place if available
+        if #places > 0 then
+            local randomPlace = places[math.random(1, #places)]
+            teleportService:TeleportToPlaceInstance(game.PlaceId, randomPlace.PlaceId)
+        else
+            warn("No available places to teleport to.")
+        end
     end)
 
-    if success then
-        for _, server in ipairs(servers) do
-            -- Filter out current server to avoid retrying the same one
-            if server and server.PlaceId ~= game.PlaceId then
-                game:GetService("TeleportService"):TeleportToPlaceInstance(game.PlaceId, server.PlaceId)
-                break
-            end
-        end
-    else
-        warn("Error fetching servers")
+    if not success then
+        warn("Error during server hop: " .. tostring(message))
     end
 end
 
