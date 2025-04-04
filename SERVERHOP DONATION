@@ -2,87 +2,45 @@ repeat
     task.wait()
 until game:IsLoaded()
 
--- Check if we are in the correct game
+-- Stops script if on a different game
 if game.PlaceId ~= 8737602449 and game.PlaceId ~= 8943844393 then
     return
 end
 
--- Create GUI
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
-ScreenGui.Name = "ServerHopGui"
+local CoreGui = game:GetService("CoreGui")
+local Players = game:GetService("Players")
+local HttpService = game:GetService("HttpService")
+local TPService = game:GetService("TeleportService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Workspace = game:GetService("Workspace")
 
--- Create draggable frame
-local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 200, 0, 100)  -- Size of the frame
-frame.Position = UDim2.new(0, 50, 0, 50)  -- Position of the frame
-frame.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
-frame.BorderSizePixel = 0
-frame.Parent = ScreenGui
-
--- Create a drag bar for the frame
-local dragBar = Instance.new("TextButton")
-dragBar.Size = UDim2.new(1, 0, 0, 30)  -- Drag bar size
-dragBar.Position = UDim2.new(0, 0, 0, 0)  -- Position on top of the frame
-dragBar.Text = "Drag Me"
-dragBar.TextColor3 = Color3.fromRGB(255, 255, 255)
-dragBar.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-dragBar.Parent = frame
-
--- Draggable functionality
-local dragging = false
-local dragInput, dragStart, startPos
-
-dragBar.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        dragging = true
-        dragStart = input.Position
-        startPos = frame.Position
-    end
-end)
-
-dragBar.InputChanged:Connect(function(input)
-    if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-        local delta = input.Position - dragStart
-        frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-    end
-end)
-
-dragBar.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        dragging = false
-    end
-end)
-
--- Create server hop button
-local hopButton = Instance.new("TextButton")
-hopButton.Size = UDim2.new(0, 180, 0, 40)
-hopButton.Position = UDim2.new(0, 10, 0, 40)
-hopButton.Text = "Hop to Another Server"
-hopButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-hopButton.BackgroundColor3 = Color3.fromRGB(0, 122, 255)
-hopButton.Parent = frame
-
--- Function to hop to a server (using teleport)
+-- Create a function to hop servers
 local function hopToServer()
     local success, message = pcall(function()
-        -- Randomly select a place instance (if available)
-        local teleportService = game:GetService("TeleportService")
-        local places = game:GetService("ReplicatedStorage"):WaitForChild("PlaceId"):GetChildren()
-
-        -- Teleport to a new place if available
-        if #places > 0 then
-            local randomPlace = places[math.random(1, #places)]
-            teleportService:TeleportToPlaceInstance(game.PlaceId, randomPlace.PlaceId)
+        -- Get a list of servers
+        local servers = ReplicatedStorage:WaitForChild("ServerInstances"):GetChildren()
+        
+        -- If there are servers, teleport to a different one
+        if #servers > 0 then
+            local randomServer = servers[math.random(1, #servers)]
+            TPService:TeleportToPlaceInstance(game.PlaceId, randomServer.PlaceId)
         else
-            warn("No available places to teleport to.")
+            warn("No servers found.")
         end
     end)
-
+    
     if not success then
         warn("Error during server hop: " .. tostring(message))
     end
 end
 
--- Connect the button to the hop function
-hopButton.MouseButton1Click:Connect(hopToServer)
+-- Check for server hop button or activation
+local button = Instance.new("TextButton")
+button.Size = UDim2.new(0, 200, 0, 50)
+button.Position = UDim2.new(0.5, -100, 0.5, -25)
+button.Text = "Hop to Server"
+button.TextColor3 = Color3.fromRGB(255, 255, 255)
+button.BackgroundColor3 = Color3.fromRGB(0, 122, 255)
+button.Parent = CoreGui
+
+button.MouseButton1Click:Connect(hopToServer)
