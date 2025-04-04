@@ -1,0 +1,81 @@
+repeat task.wait() until game:IsLoaded()
+
+if game.PlaceId ~= 8737602449 and game.PlaceId ~= 8943844393 then return end
+
+local Players = game:GetService("Players")
+local TPService = game:GetService("TeleportService")
+local HttpService = game:GetService("HttpService")
+local LocalPlayer = Players.LocalPlayer
+
+local function GetServer()
+    local servers = {}
+    local url = "https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"
+    local success, response = pcall(function()
+        return HttpService:JSONDecode(game:HttpGet(url))
+    end)
+    
+    if success and response and response.data then
+        for _, v in pairs(response.data) do
+            if v.playing < v.maxPlayers and v.id ~= game.JobId then
+                table.insert(servers, v.id)
+            end
+        end
+    end
+    
+    if #servers > 0 then
+        return servers[math.random(1, #servers)]
+    end
+    return nil
+end
+
+local function ServerHop()
+    local server = GetServer()
+    if server then
+        TPService:TeleportToPlaceInstance(game.PlaceId, server, LocalPlayer)
+    else
+        warn("No available servers found!")
+    end
+end
+
+-- UI for Server Hop Button and Time Input
+local ScreenGui = Instance.new("ScreenGui")
+local Button = Instance.new("TextButton")
+local TimeInput = Instance.new("TextBox")
+local Label = Instance.new("TextLabel")
+
+ScreenGui.Parent = game:GetService("CoreGui")
+Button.Parent = ScreenGui
+TimeInput.Parent = ScreenGui
+Label.Parent = ScreenGui
+
+Button.Size = UDim2.new(0, 200, 0, 50)
+Button.Position = UDim2.new(0.5, -100, 0.5, -25)
+Button.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+Button.Text = "Set Time & Server Hop"
+Button.TextSize = 20
+Button.TextColor3 = Color3.fromRGB(255, 255, 255)
+Button.Font = Enum.Font.SourceSansBold
+
+TimeInput.Size = UDim2.new(0, 200, 0, 50)
+TimeInput.Position = UDim2.new(0.5, -100, 0.6, 0)
+TimeInput.PlaceholderText = "Enter time in minutes"
+TimeInput.TextSize = 18
+TimeInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+TimeInput.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+
+Label.Size = UDim2.new(0, 200, 0, 30)
+Label.Position = UDim2.new(0.5, -100, 0.45, 0)
+Label.Text = "Enter delay (minutes)"
+Label.TextSize = 18
+Label.TextColor3 = Color3.fromRGB(255, 255, 255)
+Label.BackgroundTransparency = 1
+
+Button.MouseButton1Click:Connect(function()
+    local timeInMinutes = tonumber(TimeInput.Text)
+    if timeInMinutes and timeInMinutes > 0 then
+        wait(timeInMinutes * 60)  -- Wait for the specified time (in seconds)
+        ServerHop()
+    else
+        warn("Please enter a valid number of minutes.")
+    end
+end)
